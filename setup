@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# Save our current wd
+OWD=$(pwd)
+
+# Clone the szilu/ssl-proxy repo
+mkdir -p ~/git/szilu
+cd ~/git/szilu
+git clone git@github.com:szilu/ssl-proxy
+
+# Create & install the required code
+cd ssl-proxy
+make
+sudo cp ssl_proxy /usr/bin/ssl_proxy
+
+# Setup the certificate directory
+cd ${OWD}
+sudo mkdir -p /var/ssl
+sudo cp gen /var/ssl/gen
+sudo cp openssl.cnf /var/ssl/openssl.cnf
+sudo chmod +x /var/ssl/gen
+
+echo "Run 'cd /var/ssl ; sudo ./gen <name>' to generate a certificate"
+echo "Run 'sudo ssl_proxy -C /var/ssl/<name>.crt -K /var/ssl/<name>.key' to start the SSL proxy"

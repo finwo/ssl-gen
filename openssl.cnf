@@ -1,0 +1,24 @@
+[ ca ]
+default_ca      = CA_default
+
+[ CA_default ]
+private_key = ca.key
+copy_extensions = copy
+
+[req]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_req
+prompt = no
+
+[v3_req]
+keyUsage = keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[req_distinguished_name]
+C = NL
+ST = NH
+L = Haarlem
+O = Virtual P.C. Services
+OU = Robin Bron
+

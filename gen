@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+DOMAIN="$1"
+
+# Generate passwordless private key
+openssl genrsa -des3 -passout pass:x -out ${DOMAIN}.pass.key 4096
+openssl rsa -passin pass:x -in ${DOMAIN}.pass.key -out ${DOMAIN}.key
+rm ${DOMAIN}.pass.key
+
+# Generate certificate signature request
+openssl req -new -key ${DOMAIN}.key -out ${DOMAIN}.csr -config <(cat openssl.cnf <(printf "\nCN = ${DOMAIN}\n[alt_names]\nDNS.1 = ${DOMAIN}\n[SAN]\nsubjectAltName=DNS:${DOMAIN}")) -extensions 'v3_req'
+
+# Generate certificate
+openssl x509 -req -sha256 -days 7300 -in ${DOMAIN}.csr -signkey ${DOMAIN}.key -out /var/ssl/${DOMAIN}.crt
+
+## Verify
+#openssl x509 -in ${DOMAIN}.crt -noout -text
+
+## The old method
+# openssl req -new -nodes -newkey rsa:4096 -keyout ${DOMAIN}.key -out ${DOMAIN}.csr -days 7300 -subj "/CN=${DOMAIN}/O=Virtual P.C. Services/OU=R&D/subjectAltName=DNS.1=${DOMAIN}" -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=DNS:${DOMAIN}")) -extensions 'v3_req'
+# openssl x509 -req -in ${DOMAIN}.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out ${DOMAIN}.crt
