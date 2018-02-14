@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Make sure we're running in this directory
+cd $(dirname $0)
+
 # Setup the domain
 DOMAIN="$1"
 mkdir "${DOMAIN}"
