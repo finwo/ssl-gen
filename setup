@@ -17,8 +17,10 @@ sudo cp ssl_proxy /usr/bin/ssl_proxy
 cd ${OWD}
 sudo mkdir -p /var/ssl
 sudo cp gen /var/ssl/gen
+sudo cp start /var/ssl/start
 sudo cp openssl.cnf /var/ssl/openssl.cnf
 sudo chmod +x /var/ssl/gen
+sudo chmod +x /var/ssl/start
 
 echo "Run 'cd /var/ssl ; sudo ./gen <name>' to generate a certificate"
-echo "Run 'sudo ssl_proxy -C /var/ssl/<name>.crt -K /var/ssl/<name>.key' to start the SSL proxy"
+echo "Run 'sudo /var/ssl/start <name>' to start the SSL proxy"
