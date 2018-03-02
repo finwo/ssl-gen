@@ -8,6 +8,10 @@ mkdir -p ~/git/szilu
 cd ~/git/szilu
 git clone git@github.com:szilu/ssl-proxy
 
+# Make sure we have the dependencies
+sudo apt update
+sudo apt install libssh-dev -y
+
 # Create & install the required code
 cd ssl-proxy
 make
