@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-sudo ssl_proxy -C "/var/ssl/$1/certificate.pem" -K "/var/ssl/$1/private.pem"
+sudo ssl_proxy -C "/var/ssl/$1/certificate.pem" -K "/var/ssl/$1/private.pem" "${@:2}"
