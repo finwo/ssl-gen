@@ -21,9 +21,9 @@ DOMAIN="${1}"
   SSLCFG="${SSLCFG}C = ${SSL_CA_C:-NL}\n"
   SSLCFG="${SSLCFG}ST = ${SSL_CA_ST:-NH}\n"
   SSLCFG="${SSLCFG}L = ${SSL_CA_L:-Amsterdam}\n"
-  SSLCFG="${SSLCFG}CN = ${SSL_CA_CN:-authority}\n"
-  SSLCFG="${SSLCFG}O = ${SSL_CA_O:-Finwo}\n"
-  SSLCFG="${SSLCFG}OU = ${SSL_CA_OU:-Robin Bron}\n"
+  SSLCFG="${SSLCFG}CN = ${SSL_CA_CN:-Feel Robotics B.V. - Certificate Authority}\n"
+  SSLCFG="${SSLCFG}O = ${SSL_CA_O:-Feel Robotics B.V.}\n"
+  SSLCFG="${SSLCFG}OU = ${SSL_CA_OU:-Sirius Labs}\n"
 
   # Generate passwordless authority key
   openssl genrsa -passout pass:xxxx -out ca.pass.key 4096
