@@ -11,7 +11,7 @@ x509_extensions = v3_req
 prompt = no
 
 [v3_req]
-keyUsage = keyEncipherment, dataEncipherment
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
 extendedKeyUsage = serverAuth
 subjectAltName = @alt_names
 
@@ -20,4 +20,3 @@ C = NL
 ST = NH
 L = Amsterdam
 O = Finwo
-OU = Robin Bron

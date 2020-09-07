@@ -1,19 +1,56 @@
 #!/usr/bin/env bash
-# USERNAME=$(getent passwd $(whoami) | cut -d: -f5 | cut -d, -f1)
+
+# Ensure domain was given
+if [ "$#" -ne 1 ]
+then
+  echo "Usage: Must supply a domain"
+  exit 1
+fi
 DOMAIN="${1}"
 
-# Generate passwordless private key
-openssl genrsa -des3 -passout pass:xxxx -out ${DOMAIN}.pass.key 4096
+
+[ -f ca.pem ] || {
+  echo "No certificate authority present, generating"
+
+  # Built CA configuration
+  SSLCFG=""
+  SSLCFG="${SSLCFG}[req]\n"
+  SSLCFG="${SSLCFG}prompt = no\n"
+  SSLCFG="${SSLCFG}distinguished_name = req_distinguished_name\n"
+  SSLCFG="${SSLCFG}[req_distinguished_name]\n"
+  SSLCFG="${SSLCFG}C = ${SSL_CA_C:-NL}\n"
+  SSLCFG="${SSLCFG}ST = ${SSL_CA_ST:-NH}\n"
+  SSLCFG="${SSLCFG}L = ${SSL_CA_L:-Amsterdam}\n"
+  SSLCFG="${SSLCFG}O = ${SSL_CA_O:-Finwo}\n"
+  SSLCFG="${SSLCFG}CN = ${SSL_CA_CN:-authority}\n"
+
+  # Generate passwordless authority key
+  openssl genrsa -passout pass:xxxx -out ca.pass.key 4096
+  openssl rsa -passin pass:xxxx -in ca.pass.key -out ca.key
+  rm ca.pass.key
+
+  # Generate root certificate
+  openssl req -x509 -new -nodes -key ca.key -sha256 -days 7300 -out ca.pem -config <(printf "${SSLCFG}")
+}
+
+# Built CRT configuration
+SSLCFG="$(cat openssl.cnf)\n"
+SSLCFG="${SSLCFG}CN = ${DOMAIN}\n"
+SSLCFG="${SSLCFG}[alt_names]\n"
+SSLCFG="${SSLCFG}DNS.1 = ${DOMAIN}\n"
+SSLCFG="${SSLCFG}[SAN]\n"
+SSLCFG="${SSLCFG}subjectAltName=DNS:${DOMAIN}\n"
+
+# Generate passwordless domain key
+openssl genrsa -passout pass:xxxx -out ${DOMAIN}.pass.key 4096
 openssl rsa -passin pass:xxxx -in ${DOMAIN}.pass.key -out ${DOMAIN}.key
 rm ${DOMAIN}.pass.key
 
 # Generate certificate signature request
-openssl req -new -key ${DOMAIN}.key -out ${DOMAIN}.csr -config <(cat openssl.cnf <(printf "\nCN = ${DOMAIN}\n[alt_names]\nDNS.1 = ${DOMAIN}\n[SAN]\nsubjectAltName=DNS:${DOMAIN}")) -extensions 'v3_req'
+openssl req -new -key ${DOMAIN}.key -out ${DOMAIN}.csr -config <(printf "${SSLCFG}")
 
-# Generate certificate
-#openssl req -x509 -nodes -days 7300 -newkey rsa:4096 -keyout ${DOMAIN}.key -out ${DOMAIN}.crt -config <(cat openssl.cnf <(printf "\nCN = ${DOMAIN}\n[alt_names]\nDNS.1 = ${DOMAIN}\n[SAN]\nsubjectAltName=DNS:${DOMAIN}")) -extensions 'v3_req'
-openssl x509 -req -sha256 -days 7300 -in ${DOMAIN}.csr -signkey ${DOMAIN}.key -out ${DOMAIN}.crt
-#openssl ca -policy policy_anything -out ${DOMAIN}.crt -config <(cat openssl.cnf <(printf "\nCN = ${DOMAIN}\n[alt_names]\nDNS.1 = ${DOMAIN}\n[SAN]\nsubjectAltName=DNS:${DOMAIN}")) -extensions 'v3_req' -infiles ${DOMAIN}.csr
+# Sign request as authority
+openssl x509 -req -sha256 -days 7300 -in ${DOMAIN}.csr -out ${DOMAIN}.crt -CA ca.pem -CAkey ca.key -CAcreateserial
 
-## Verify
-#openssl x509 -in ${DOMAIN}.crt -noout -text
+# Verify certificate
+openssl verify -verbose -CAfile ca.pem ${DOMAIN}.crt
