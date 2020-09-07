@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# USERNAME=$(getent passwd $(whoami) | cut -d: -f5 | cut -d, -f1)
+DOMAIN="${1}"
+
+# Generate passwordless private key
+openssl genrsa -des3 -passout pass:xxxx -out ${DOMAIN}.pass.key 4096
+openssl rsa -passin pass:xxxx -in ${DOMAIN}.pass.key -out ${DOMAIN}.key
+rm ${DOMAIN}.pass.key
+
+# Generate certificate signature request
+openssl req -new -key ${DOMAIN}.key -out ${DOMAIN}.csr -config <(cat openssl.cnf <(printf "\nCN = ${DOMAIN}\n[alt_names]\nDNS.1 = ${DOMAIN}\n[SAN]\nsubjectAltName=DNS:${DOMAIN}")) -extensions 'v3_req'
+
+# Generate certificate
+#openssl req -x509 -nodes -days 7300 -newkey rsa:4096 -keyout ${DOMAIN}.key -out ${DOMAIN}.crt -config <(cat openssl.cnf <(printf "\nCN = ${DOMAIN}\n[alt_names]\nDNS.1 = ${DOMAIN}\n[SAN]\nsubjectAltName=DNS:${DOMAIN}")) -extensions 'v3_req'
+openssl x509 -req -sha256 -days 7300 -in ${DOMAIN}.csr -signkey ${DOMAIN}.key -out ${DOMAIN}.crt
+#openssl ca -policy policy_anything -out ${DOMAIN}.crt -config <(cat openssl.cnf <(printf "\nCN = ${DOMAIN}\n[alt_names]\nDNS.1 = ${DOMAIN}\n[SAN]\nsubjectAltName=DNS:${DOMAIN}")) -extensions 'v3_req' -infiles ${DOMAIN}.csr
+
+## Verify
+#openssl x509 -in ${DOMAIN}.crt -noout -text
