@@ -8,8 +8,13 @@ for domain in $(ls domains); do
   # Built CRT configuration
   SSLCFG="$(cat openssl.cnf)\n"
   SSLCFG="${SSLCFG}CN = ${domain}\n"
+
   SSLCFG="${SSLCFG}[alt_names]\n"
-  SSLCFG="${SSLCFG}DNS.1 = ${domain}\n"
+  if [ -f domains/${domain}/alt_names.cnf ]; then
+    SSLCFG="${SSLCFG}$(cat domains/${domain}/alt_names.cnf)\n"
+  else
+    SSLCFG="${SSLCFG}DNS.1 = ${domain}\n"
+  fi
 
   # Generate passwordless domain key
   if [ ! -f domains/${domain}/key.pem ]; then
