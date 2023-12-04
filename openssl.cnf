@@ -7,7 +7,7 @@ copy_extensions = copy
 
 [req]
 distinguished_name = req_distinguished_name
-x509_extensions = v3_req
+req_extensions = v3_req
 prompt = no
 
 [v3_req]

@@ -10,8 +10,6 @@ for domain in $(ls domains); do
   SSLCFG="${SSLCFG}CN = ${domain}\n"
   SSLCFG="${SSLCFG}[alt_names]\n"
   SSLCFG="${SSLCFG}DNS.1 = ${domain}\n"
-  SSLCFG="${SSLCFG}[SAN]\n"
-  SSLCFG="${SSLCFG}subjectAltName=DNS:${domain}\n"
 
   # Generate passwordless domain key
   if [ ! -f domains/${domain}/key.pem ]; then

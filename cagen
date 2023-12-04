@@ -56,14 +56,6 @@ SSLCFG="${SSLCFG}O = ${SSL_CA_O:-Finwo}\n"
 # Sign csr if given
 if [ "$#" -eq 1 ]; then
 
-  # Built CRT configuration
-  SSLCFG="$(cat openssl.cnf)\n"
-  SSLCFG="${SSLCFG}CN = ${DOMAIN}\n"
-  SSLCFG="${SSLCFG}[alt_names]\n"
-  SSLCFG="${SSLCFG}DNS.1 = ${DOMAIN}\n"
-  SSLCFG="${SSLCFG}[SAN]\n"
-  SSLCFG="${SSLCFG}subjectAltName=DNS:${DOMAIN}\n"
-
   # It's RSA, use G1
   if openssl req -in $1 -noout -text | grep rsaEncryption > /dev/null; then
     CA_BASE=ca-certificates/Finwo_Root_CA_-_G1
@@ -81,8 +73,8 @@ if [ "$#" -eq 1 ]; then
     OUTNAME=$(dirname $1)/crt.pem
   fi
 
-  openssl x509 -req -sha256 -days 365 -in ${1} -out ${OUTNAME} -CA ${CA_CERT} -CAkey ${CA_KEY} -CAcreateserial
+  openssl x509 -req -sha256 -days 365 -in ${1} -out ${OUTNAME} -CA ${CA_CERT} -CAkey ${CA_KEY} -CAcreateserial -copy_extensions copy
   openssl verify -verbose -CAfile ${CA_CERT} ${OUTNAME}
-  rm ${CA_BASE}.srl
+  rm -f ${CA_BASE}.srl
 
 fi
