@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+[ -d ca-certificates ] || {
+  echo "No ca-certificates directory present, creating"
+  mkdir -p ca-certificates
+}
+
+# Ensure root CAs are present
+[ -f ca-certificates/Finwo_Root_CA_-_G1.crt ] || {
+  echo "No G1 certificate authority present" >&2
+  exit 1
+}
+[ -f ca-certificates/Finwo_Root_CA_-_G2.crt ] || {
+  echo "No G2 certificate authority present" >&2
+  exit 1
+}
+
+nam=
+gen=g1
+ca_base=ca-certificates/Finwo_Root_CA_-_G1
+
+while [ $# -ge 1 ]; do
+  case "$1" in
+    --help)
+      echo "Usage: cacli [options]"
+      echo ""
+      echo "Options:"
+      echo "  --help         Show this usage"
+      echo "  --gen1         Switch to gen 1 algorithm (rsa, default)"
+      echo "  --gen2         Switch to gen 2 algorithm (ed25519)"
+      echo "  --name <name>  Set the name for client cert generation"
+      echo "  --newkey       Generate a new private key"
+      echo "  --newcsr       Generate new certificate signing request"
+      echo "  --sign         Actually sign the csr using our own CA"
+      echo "                 Note: signing requires client_[gen]_[name].csr to exist"
+      echo ""
+      ;;
+    --name)
+      nam=$2
+      shift
+      ;;
+    --gen1)
+      gen=g1
+      ca_base=ca-certificates/Finwo_Root_CA_-_G1
+      ;;
+    --gen2)
+      gen=g2
+      ca_base=ca-certificates/Finwo_Root_CA_-_G2
+      ;;
+    --newkey)
+      openssl genpkey -algorithm rsa -pkeyopt rsa_keygen_bits:4096 -out client_${gen}_${nam}.key
+      ;;
+    --newcsr)
+      openssl req -new -key client_${gen}_${nam}.key -out client_${gen}_${nam}.csr
+      ;;
+    --sign)
+
+      # Built CRT configuration
+      SSLCFG="${SSLCFG}basicConstraints = CA:FALSE\n"
+      SSLCFG="${SSLCFG}nsCertType = client, email\n"
+      SSLCFG="${SSLCFG}nsComment = \"Finwo Client Certificate\"\n"
+      SSLCFG="${SSLCFG}subjectKeyIdentifier = hash\n"
+      SSLCFG="${SSLCFG}authorityKeyIdentifier = keyid, issuer\n"
+      SSLCFG="${SSLCFG}keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment\n"
+      SSLCFG="${SSLCFG}extendedKeyUsage = clientAuth, emailProtection\n"
+
+      printf "${SSLCFG}" > ext.cnf
+      openssl x509 -req -in client_${gen}_${nam}.csr -CA ${ca_base}.crt -CAkey ${ca_base}.key -out client_${gen}_${nam}.crt -CAcreateserial -days 365 -sha256 -extfile ext.cnf
+      rm ext.cnf
+      ;;
+    --p12)
+      ppass=$(pwgen 16 1)
+      openssl pkcs12 -export -passout pass:${ppass} -out client_${gen}_${nam}.p12 -inkey client_${gen}_${nam}.key -in client_${gen}_${nam}.crt
+      echo Password: ${ppass}
+      ;;
+
+  esac
+  shift
+done

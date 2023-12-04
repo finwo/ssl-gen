@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+[ -d ca-certificates ] || {
+  echo "No ca-certificates directory present, creating"
+  mkdir -p ca-certificates
+}
+
+# Built CA configuration
+SSLCFG=""
+SSLCFG="${SSLCFG}basicConstraints = CA:TRUE\n"
+SSLCFG="${SSLCFG}keyUsage = cRLSign, keyCertSign\n"
+SSLCFG="${SSLCFG}[req]\n"
+SSLCFG="${SSLCFG}prompt = no\n"
+SSLCFG="${SSLCFG}distinguished_name = req_distinguished_name\n"
+SSLCFG="${SSLCFG}[req_distinguished_name]\n"
+SSLCFG="${SSLCFG}C = ${SSL_CA_C:-NL}\n"
+SSLCFG="${SSLCFG}O = ${SSL_CA_O:-Finwo}\n"
+
+# Generate root RSA CA
+[ -f ca-certificates/Finwo_Root_CA_-_G1.crt ] || {
+  echo "No G1 certificate authority present, generating"
+  CA_BASE=ca-certificates/Finwo_Root_CA_-_G1
+  CA_CERT=${CA_BASE}.crt
+  CA_KEY=${CA_BASE}.key
+
+  # Set the cert name
+  SSLCFG="${SSLCFG}CN = ${SSL_CAG1_CN:-Finwo Root CA - G1}\n"
+
+  # # Generate passwordless authority key
+  # openssl genrsa -passout pass:xxxx -out ca_g1.pass.key 4096
+  # openssl rsa -passin pass:xxxx -in ca_g1.pass.key -out ca_g1.key
+  # rm ca_g1.pass.key
+  openssl genpkey -algorithm rsa -pkeyopt rsa_keygen_bits:4096 -out ${CA_KEY}
+
+  # Generate root certificate
+  openssl req -x509 -new -nodes -key ${CA_KEY} -sha256 -days 7300 -out ${CA_CERT} -config <(printf "${SSLCFG}")
+}
+
+# Generate root ed25519 CA
+[ -f ca-certificates/Finwo_Root_CA_-_G2.crt ] || {
+  echo "No G2 certificate authority present, generating"
+  CA_BASE=ca-certificates/Finwo_Root_CA_-_G2
+  CA_CERT=${CA_BASE}.crt
+  CA_KEY=${CA_BASE}.key
+
+  # Set the cert name
+  SSLCFG="${SSLCFG}CN = ${SSL_CAG2_CN:-Finwo Root CA - G2}\n"
+
+  # Generate passwordless authority key
+  openssl genpkey -algorithm ed25519 -out ${CA_KEY}
+
+  # Generate root certificate
+  openssl req -x509 -new -nodes -key ${CA_KEY} -sha256 -days 7300 -out ${CA_CERT} -config <(printf "${SSLCFG}")
+}
+
+# Sign csr if given
+if [ "$#" -eq 1 ]; then
+
+  # Built CRT configuration
+  SSLCFG="$(cat openssl.cnf)\n"
+  SSLCFG="${SSLCFG}CN = ${DOMAIN}\n"
+  SSLCFG="${SSLCFG}[alt_names]\n"
+  SSLCFG="${SSLCFG}DNS.1 = ${DOMAIN}\n"
+  SSLCFG="${SSLCFG}[SAN]\n"
+  SSLCFG="${SSLCFG}subjectAltName=DNS:${DOMAIN}\n"
+
+  # It's RSA, use G1
+  if openssl req -in $1 -noout -text | grep rsaEncryption > /dev/null; then
+    CA_BASE=ca-certificates/Finwo_Root_CA_-_G1
+    CA_CERT=${CA_BASE}.crt
+    CA_KEY=${CA_BASE}.key
+  fi
+
+  # It's ed25519, use G2
+  # TODO
+
+  # Generate the output name
+  OUTNAME=${1%.csr}.crt
+  BNAME=$(basename $1)
+  if [ "$BNAME" == "csr.pem" ]; then
+    OUTNAME=$(dirname $1)/crt.pem
+  fi
+
+  openssl x509 -req -sha256 -days 365 -in ${1} -out ${OUTNAME} -CA ${CA_CERT} -CAkey ${CA_KEY} -CAcreateserial
+  openssl verify -verbose -CAfile ${CA_CERT} ${OUTNAME}
+  rm ${CA_BASE}.srl
+
+fi

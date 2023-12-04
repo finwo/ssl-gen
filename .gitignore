@@ -3,3 +3,4 @@
 *.csr
 *.crt
 *.srl
+/bak/

@@ -17,7 +17,4 @@ subjectAltName = @alt_names
 
 [req_distinguished_name]
 C = NL
-ST = NH
-L = Amsterdam
-O = Feel Robotics B.V.
-OU = Sirius Labs
+O = Finwo
